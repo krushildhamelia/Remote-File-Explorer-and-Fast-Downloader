@@ -1,0 +1,31 @@
+name: remote_file_explorer
+description: Remote file explorer with multi-thread downloader
+version: 1.0.0+1
+
+environment:
+  sdk: '>=3.0.0 <4.0.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+  http: ^1.1.0
+  path_provider: ^2.1.1
+  shelf: ^1.4.1
+  shelf_router: ^1.1.4
+  shelf_static: ^1.1.2
+  network_info_plus: ^4.1.0
+  permission_handler: ^11.0.1
+  file_picker: ^10.2.4
+  shared_preferences: ^2.2.2
+  provider: ^6.1.1
+  path: ^1.8.3
+  dio: ^5.4.0
+  mime: ^1.0.4
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^3.0.1
+
+flutter:
+  uses-material-design: true
