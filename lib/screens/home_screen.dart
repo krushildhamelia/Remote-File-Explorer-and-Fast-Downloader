@@ -18,8 +18,8 @@ class _HomeScreenState extends State<HomeScreen> {
   final List<String> _discoveredServers = [];
   bool _isScanning = false;
   final Dio _dio = Dio(BaseOptions(
-    connectTimeout: const Duration(seconds: 2),
-    receiveTimeout: const Duration(seconds: 2),
+    connectTimeout: const Duration(seconds: 6),
+    receiveTimeout: const Duration(seconds: 6),
   ));
 
   Future<void> _discoverServers() async {
@@ -57,7 +57,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Future<void> _checkServer(String ip, int port) async {
     try {
-      final response = await _dio.get('http://$ip:$port/api/files?path=/');
+      final response = await _dio.get('http://$ip:$port/api/server-check');
       if (response.statusCode == 200) {
         setState(() {
           _discoveredServers.add('http://$ip:$port');

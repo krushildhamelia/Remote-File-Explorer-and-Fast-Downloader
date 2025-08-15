@@ -1,7 +1,10 @@
+
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:file_picker/file_picker.dart';
 import '../providers/settings_provider.dart';
+
+import '../utils/utils.dart';
 
 class SettingsScreen extends StatelessWidget {
   @override
@@ -55,6 +58,19 @@ class SettingsScreen extends StatelessWidget {
               ),
             ),
           ),
+          const SizedBox(height: 8),
+
+          // Permissions
+          Card(
+            child: ListTile(
+              leading: const Icon(Icons.security_sharp),
+              title: const Text('Grant Permissions'),
+              subtitle: Text(""),
+              trailing: IconButton(
+                  onPressed: () => grantAllAndroidPermissions(),
+                  icon: const Icon(Icons.security_sharp)),
+            ),
+          )
         ],
       ),
     );

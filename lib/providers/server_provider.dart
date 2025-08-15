@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart' hide Router;
+import 'package:path_provider/path_provider.dart';
 import 'package:shelf/shelf.dart';
 import 'package:shelf/shelf_io.dart' as io;
 import 'package:shelf_router/shelf_router.dart';
@@ -8,6 +9,11 @@ import '../models/file_item.dart';
 import 'package:network_info_plus/network_info_plus.dart';
 import 'package:path/path.dart' as p;
 import 'package:mime/mime.dart';
+import 'package:permission_handler/permission_handler.dart';
+import 'package:android_intent_plus/android_intent.dart';
+
+import '../utils/utils.dart';
+
 
 class ServerProvider extends ChangeNotifier {
   HttpServer? _server;
@@ -28,6 +34,54 @@ class ServerProvider extends ChangeNotifier {
     return drives;
   }
 
+  Future<bool> isExternalStoragePresent() async {
+    final Directory? directory = await getExternalStorageDirectory();
+    if (directory == null) {
+      return false;
+    }
+    return true;
+  }
+
+  Future<bool> hasAllFilesAccess() async {
+    return await Permission.manageExternalStorage.isGranted;
+  }
+
+  Future<void> requestAllFilesAccess() async {
+    if (Platform.isAndroid) {
+      final intent = AndroidIntent(
+        action: 'android.settings.MANAGE_ALL_FILES_ACCESS_PERMISSION',
+      );
+      await intent.launch();
+    }
+  }
+
+  Future<List<Directory>> getAndroidStorageDirectories() async {
+    final dirs = <Directory>[];
+
+    // Primary external storage
+    final primary = Directory('/storage/emulated/0');
+    if (primary.existsSync()) dirs.add(primary);
+
+    // Other possible external storages (SD cards, USB OTG)
+    if (await isExternalStoragePresent() && !(await hasAllFilesAccess())) {
+      await grantAllAndroidPermissions();
+    }
+
+    if (!(await hasAllFilesAccess())) {
+      return dirs;
+    }
+
+    final storageRoot = Directory('/storage');
+    if (storageRoot.existsSync()) {
+      for (var entity in storageRoot.listSync()) {
+        if (entity is Directory && entity.path != '/storage/emulated' && entity.path != '/storage/self') {
+          dirs.add(entity);
+        }
+      }
+    }
+
+    return dirs;
+  }
 
   Future<void> startServer(int port) async {
     if (_isRunning) return;
@@ -37,7 +91,42 @@ class ServerProvider extends ChangeNotifier {
 
       // List directory contents
       router.get('/api/files', (Request request) async {
-        final path = request.url.queryParameters['path'] ?? '/';
+        String path = request.url.queryParameters['path'] ?? '/';
+
+        try {
+          if (Platform.isWindows && path == '/') {
+            final drives = getWindowsDrives().map((d) => FileItem(
+              name: d,
+              path: d,
+              isDirectory: true,
+              size: 0,
+              modifiedDate: DateTime.now(),
+            )).toList();
+  
+            return Response.ok(jsonEncode(drives.map((e) => e.toJson()).toList()),
+              headers: {'Content-Type': 'application/json'},
+            );
+          }
+  
+          if (Platform.isAndroid && path == '/') {
+            final storages = (await getAndroidStorageDirectories()).map((d) => FileItem(
+              name: d.path.split('/').last,
+              path: d.path,
+              isDirectory: true,
+              size: 0,
+              modifiedDate: DateTime.now(),
+            )).toList();
+  
+            return Response.ok(jsonEncode(storages.map((e) => e.toJson()).toList()),
+              headers: {'Content-Type': 'application/json'},
+            );
+          }
+        } catch (e) {
+          print("Error get root directories for platform: $e");
+          path = path == "/" && Platform.isAndroid ? "/storage/emulated/0" : "/";
+        }
+
+
         final directory = Directory(path);
 
         if (!await directory.exists()) {
@@ -60,6 +149,11 @@ class ServerProvider extends ChangeNotifier {
           jsonEncode(items.map((e) => e.toJson()).toList()),
           headers: {'Content-Type': 'application/json'},
         );
+      });
+
+
+      router.get('/api/server-check', (Request request) async {
+        return Response.ok("");
       });
 
       // Download file with range support

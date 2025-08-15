@@ -23,7 +23,7 @@ class SettingsProvider extends ChangeNotifier {
     _downloadPath = prefs.getString('downloadPath') ?? '';
 
     if (_downloadPath.isEmpty) {
-      final directory = await getApplicationDocumentsDirectory();
+      final directory = await getDownloadsDirectory() ?? await getApplicationDocumentsDirectory();
       _downloadPath = directory.path;
     }
     notifyListeners();
